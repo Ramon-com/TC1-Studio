@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TC1.Studio.ViewModels"
+             x:Class="TC1.Studio.Views.ObjectTreeView">
+  <DockPanel>
+    <TextBlock DockPanel.Dock="Top" Text="Object Tree" FontWeight="Bold" Margin="4" />
+    <TreeView ItemsSource="{Binding RootNodes}" SelectionMode="Single"
+              SelectedItem="{Binding SelectedNode, Mode=TwoWay}">
+      <TreeView.ItemTemplate>
+        <TreeDataTemplate DataType="vm:ObjectNodeViewModel" ItemsSource="{Binding Children}">
+          <StackPanel Orientation="Horizontal" Spacing="4" Margin="2"
+                      PointerPressed="OnItemPointerPressed">
+            <StackPanel.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Assign Friendly Name..." IsEnabled="{Binding CanRename}"
+                          Click="OnRenameNode" />
+              </ContextMenu>
+            </StackPanel.ContextMenu>
+            <TextBlock Text="{Binding ResolvedName}" FontWeight="Bold" />
+            <TextBlock Text="{Binding OriginTag}" Foreground="#888" FontSize="11" />
+            <TextBlock Text="{Binding NameHash, StringFormat='0x{0:X8}'}" Opacity="0.5" FontSize="11" />
+          </StackPanel>
+        </TreeDataTemplate>
+      </TreeView.ItemTemplate>
+    </TreeView>
+  </DockPanel>
+</UserControl>

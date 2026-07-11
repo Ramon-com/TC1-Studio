@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TC1.Studio.Views.InputDialog"
+        Title="Assign Friendly Name"
+        Width="400" Height="160"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+  <StackPanel Spacing="12" Margin="16">
+    <TextBlock Text="Enter a friendly name for this field:" />
+    <TextBox x:Name="NameBox" Watermark="e.g. RainIntensity" />
+    <TextBlock x:Name="ErrorText" Foreground="#FF5252" FontSize="12" IsVisible="False" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="Cancel" Click="OnCancel" Width="80" />
+      <Button Content="OK" Click="OnOk" Width="80" />
+    </StackPanel>
+  </StackPanel>
+</Window>

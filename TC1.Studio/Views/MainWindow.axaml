@@ -1,0 +1,82 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TC1.Studio.ViewModels"
+        xmlns:views="clr-namespace:TC1.Studio.Views"
+        x:Class="TC1.Studio.Views.MainWindow"
+        Title="{Binding Title}"
+        Width="1200" Height="750"
+        WindowStartupLocation="CenterScreen">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <!-- Menu -->
+    <Menu Grid.Row="0">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open Archive" Command="{Binding OpenArchiveCommand}" 
+                  InputGesture="Ctrl+O" />
+        <MenuItem Header="_Save" Command="{Binding SaveArchiveCommand}" 
+                  InputGesture="Ctrl+S" IsEnabled="{Binding HasDocument}" />
+        <Separator />
+        <MenuItem Header="_Close Archive" Command="{Binding CloseArchiveCommand}" IsEnabled="{Binding HasDocument}" />
+      </MenuItem>
+      <MenuItem Header="_Edit">
+        <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z"
+                  IsEnabled="{Binding CanUndo}" />
+        <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y"
+                  IsEnabled="{Binding CanRedo}" />
+        <Separator />
+        <MenuItem Header="_Reset to Original" Command="{Binding ResetToOriginalCommand}"
+                  IsEnabled="{Binding HasDocument}" />
+      </MenuItem>
+      <MenuItem Header="_View">
+        <MenuItem Header="_Show Diff" Command="{Binding ShowDiffCommand}"
+                  IsEnabled="{Binding HasDocument}" InputGesture="Ctrl+D" />
+      </MenuItem>
+    </Menu>
+
+    <!-- Main content: three-pane layout + optional diff panel -->
+    <Grid Grid.Row="1" ColumnDefinitions="250,3,*,3,250">
+      <GridSplitter Grid.Column="1" Width="3" Background="#0078D4" />
+      <GridSplitter Grid.Column="3" Width="3" Background="#0078D4" />
+
+      <!-- Left: Archive Explorer -->
+      <Border Grid.Column="0" BorderBrush="#0078D4" BorderThickness="1" Margin="2">
+        <views:ArchiveExplorerView DataContext="{Binding ArchiveExplorer}" />
+      </Border>
+
+      <!-- Middle: Object Tree -->
+      <Border Grid.Column="2" BorderBrush="#0078D4" BorderThickness="1" Margin="2">
+        <Grid RowDefinitions="*,Auto,*">
+          <!-- Object tree (top half) -->
+          <views:ObjectTreeView DataContext="{Binding ObjectTree}" Grid.Row="0" />
+
+          <!-- Diff panel (bottom half, collapsible) -->
+          <GridSplitter Grid.Row="1" Height="3" Background="#FF8C00" IsVisible="{Binding DiffView.IsVisible}" />
+          <Border Grid.Row="2" BorderBrush="#FF8C00" BorderThickness="1" Margin="0,2,0,0"
+                  IsVisible="{Binding DiffView.IsVisible}">
+            <views:DiffView DataContext="{Binding DiffView}" />
+          </Border>
+        </Grid>
+      </Border>
+
+      <!-- Right: Property Grid -->
+      <Border Grid.Column="4" BorderBrush="#0078D4" BorderThickness="1" Margin="2">
+        <views:PropertyGridView DataContext="{Binding PropertyGrid}" />
+      </Border>
+    </Grid>
+
+    <!-- Status bar -->
+    <Border Grid.Row="2" Background="#2D2D2D" Padding="8,3">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+        <TextBlock Grid.Column="0" Text="{Binding StatusText}" Foreground="#CCCCCC" />
+        <TextBlock Grid.Column="1" Foreground="#CCCCCC" FontSize="11" Margin="8,0,0,0">
+          <Run Text="  |  Modified: " /><Run Text="{Binding IsModified}" />
+        </TextBlock>
+        <TextBlock Grid.Column="2" Foreground="#FF9800" FontSize="11" Margin="8,0,0,0"
+                   IsVisible="{Binding HasValidationWarnings}">
+          <Run Text="⚠ " /><Run Text="{Binding ValidationResults.Count}" /><Run Text=" warnings" />
+        </TextBlock>
+        <TextBlock Grid.Column="4" Text="Round-trip Safe" 
+                   Foreground="#4CAF50" FontSize="11" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

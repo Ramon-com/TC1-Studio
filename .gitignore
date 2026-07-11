@@ -1,0 +1,20 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.DotSettings
+*.DotSettings.user
+.vs/
+*.sln.docstates
+
+# Build output
+publish/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

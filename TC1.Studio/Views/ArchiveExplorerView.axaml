@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TC1.Studio.ViewModels"
+             x:Class="TC1.Studio.Views.ArchiveExplorerView">
+  <DockPanel>
+    <TextBlock DockPanel.Dock="Top" Text="{Binding ArchiveName}" FontWeight="Bold" Margin="4" />
+    <ListBox ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry, Mode=TwoWay}" SelectionChanged="OnSelectionChanged">
+      <ListBox.ItemTemplate>
+        <DataTemplate DataType="vm:ArchiveEntryViewModel">
+          <StackPanel Margin="4">
+            <TextBlock Text="{Binding Name}" FontWeight="Bold" />
+            <StackPanel Margin="8,0,0,0">
+              <TextBlock Text="{Binding NameHash, StringFormat='0x{0:X16}'}" FontSize="11" Opacity="0.6" />
+              <TextBlock Text="{Binding CompressionScheme, StringFormat='Scheme: {0}'}" FontSize="11" Opacity="0.6" />
+            </StackPanel>
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>
