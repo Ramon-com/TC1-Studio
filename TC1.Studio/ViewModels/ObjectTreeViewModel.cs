@@ -176,7 +176,7 @@ public partial class ObjectTreeViewModel : ObservableObject
         if (hexHash.StartsWith("0x") || hexHash.StartsWith("0X"))
         {
             var hex = hexHash.Substring(2);
-            if (hex.Length == 8 && uint.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out var u32))
+            if (hex.Length > 0 && hex.Length <= 8 && uint.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out var u32))
             {
                 // Check it's not already known as a different name
                 if (_hashes.IsKnown(u32) && !_hashes.IsUserDefined(u32))

@@ -104,16 +104,20 @@ public class HashService
             Directory.CreateDirectory(dir);
 
         var dict = new Dictionary<string, string>();
-        foreach (var kv in _crc32)
+        if (File.Exists(_userPath))
         {
-            if (kv.Value.Origin == HashOrigin.User)
-                dict[$"0x{kv.Key:X8}"] = kv.Value.Name;
+            try
+            {
+                var existing = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(_userPath));
+                if (existing != null)
+                    dict = existing;
+            }
+            catch { }
         }
-        foreach (var kv in _crc64)
-        {
-            if (kv.Value.Origin == HashOrigin.User)
-                dict[$"0x{kv.Key:X16}"] = kv.Value.Name;
-        }
+
+        var key = $"0x{hash:X8}";
+        dict.Remove(key);
+        dict[key] = name;
 
         var json = JsonSerializer.Serialize(dict, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(_userPath, json);

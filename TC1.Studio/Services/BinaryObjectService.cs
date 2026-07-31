@@ -25,14 +25,15 @@ public class BinaryObjectService
     public BinaryObjectFile Original { get; private set; }
     public BinaryObjectFile Working { get; private set; }
     public bool IsModified { get; set; }
+    private byte[] _originalBytes;
 
     public void Open(byte[] data)
     {
+        _originalBytes = data;
+        Original = new BinaryObjectFile();
         using var ms = new MemoryStream(data);
-        var f = new BinaryObjectFile();
-        f.Deserialize(ms);
-        Original = f.Clone();
-        Working = f;
+        Original.Deserialize(ms);
+        Working = new BinaryObjectFile { Root = Original.Root.Clone() };
         IsModified = false;
     }
 
@@ -41,7 +42,7 @@ public class BinaryObjectService
         using var ms = new MemoryStream();
         Working.Serialize(ms);
         var result = ms.ToArray();
-        IsModified = !BytesEqual(Original, Working);
+        IsModified = !result.AsSpan().SequenceEqual(_originalBytes);
         return result;
     }
 
@@ -117,14 +118,5 @@ public class BinaryObjectService
             if (ca != null && cb != null)
                 DiffNodes(ca, cb, diffs);
         }
-    }
-
-    private static bool BytesEqual(BinaryObjectFile a, BinaryObjectFile b)
-    {
-        using var ma = new MemoryStream();
-        using var mb = new MemoryStream();
-        a.Serialize(ma);
-        b.Serialize(mb);
-        return ma.ToArray().AsSpan().SequenceEqual(mb.ToArray());
     }
 }

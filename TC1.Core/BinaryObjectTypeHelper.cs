@@ -13,7 +13,7 @@ public static class BinaryObjectTypeHelper
         if (data.Length == 8)
         {
             var d = BitConverter.ToDouble(data);
-            if (double.IsFinite(d) && (d == 0 || Math.Abs(d) is < 1e20 and > 1e-20 || Math.Abs(Math.Abs(d) - 1) < 0.001))
+            if (double.IsFinite(d) && (d == 0 || (Math.Abs(d) > 1e-20 && Math.Abs(d) < 1e20)))
                 return "float64";
             return "bytes[8]";
         }
@@ -22,7 +22,8 @@ public static class BinaryObjectTypeHelper
             var f1 = BitConverter.ToSingle(data, 0);
             var f2 = BitConverter.ToSingle(data, 4);
             var f3 = BitConverter.ToSingle(data, 8);
-            if (IsLikelyFloat(f1) && IsLikelyFloat(f2) && IsLikelyFloat(f3))
+            if (IsLikelyFloat(f1) && IsLikelyFloat(f2) && IsLikelyFloat(f3) &&
+                !(f1 == 0 && f2 == 0 && f3 == 0))
                 return "vec3";
             return "bytes[12]";
         }
@@ -32,7 +33,8 @@ public static class BinaryObjectTypeHelper
             var f2 = BitConverter.ToSingle(data, 4);
             var f3 = BitConverter.ToSingle(data, 8);
             var f4 = BitConverter.ToSingle(data, 12);
-            if (IsLikelyFloat(f1) && IsLikelyFloat(f2) && IsLikelyFloat(f3) && IsLikelyFloat(f4))
+            if (IsLikelyFloat(f1) && IsLikelyFloat(f2) && IsLikelyFloat(f3) && IsLikelyFloat(f4) &&
+                !(f1 == 0 && f2 == 0 && f3 == 0 && f4 == 0))
                 return "vec4";
             return "bytes[16]";
         }

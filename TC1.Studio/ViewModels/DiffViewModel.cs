@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TC1.Studio.Services;
 
@@ -20,6 +21,12 @@ public class DiffViewModel : ObservableObject
     {
         _boService = boService;
         _hashService = hashService;
+        Diffs.CollectionChanged += OnDiffsChanged;
+    }
+
+    private void OnDiffsChanged(object sender, NotifyCollectionChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(HasDiffs));
     }
 
     public void Refresh()
@@ -31,14 +38,12 @@ public class DiffViewModel : ObservableObject
             d.ResolvedName = _hashService.Resolve(d.NameHash);
             Diffs.Add(new DiffItemViewModel(d));
         }
-        OnPropertyChanged(nameof(HasDiffs));
         IsVisible = Diffs.Count > 0;
     }
 
     public void Clear()
     {
         Diffs.Clear();
-        OnPropertyChanged(nameof(HasDiffs));
         IsVisible = false;
     }
 }

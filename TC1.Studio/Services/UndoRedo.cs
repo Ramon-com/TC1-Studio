@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TC1.Core.BinaryObject;
 
 namespace TC1.Studio.Services;
@@ -11,36 +12,31 @@ public interface IUndoableCommand
 
 public class CommandStack
 {
-    private readonly Stack<IUndoableCommand> _undoStack = new();
+    private readonly LinkedList<IUndoableCommand> _undoStack = new();
     private readonly Stack<IUndoableCommand> _redoStack = new();
     private const int MaxUndo = 100;
 
     public event Action Changed;
     public bool CanUndo => _undoStack.Count > 0;
     public bool CanRedo => _redoStack.Count > 0;
-    public string UndoName => _undoStack.Count > 0 ? _undoStack.Peek().Name : "";
+    public string UndoName => _undoStack.Count > 0 ? _undoStack.Last.Value.Name : "";
     public string RedoName => _redoStack.Count > 0 ? _redoStack.Peek().Name : "";
 
     public void Execute(IUndoableCommand cmd)
     {
         cmd.Execute();
-        _undoStack.Push(cmd);
+        _undoStack.AddLast(cmd);
         _redoStack.Clear();
         if (_undoStack.Count > MaxUndo)
-        {
-            var arr = _undoStack.ToArray();
-            Array.Reverse(arr);
-            _undoStack.Clear();
-            for (int i = arr.Length - MaxUndo; i < arr.Length; i++)
-                _undoStack.Push(arr[i]);
-        }
+            _undoStack.RemoveFirst();
         Changed?.Invoke();
     }
 
     public void Undo()
     {
         if (_undoStack.Count == 0) return;
-        var cmd = _undoStack.Pop();
+        var cmd = _undoStack.Last.Value;
+        _undoStack.RemoveLast();
         cmd.Undo();
         _redoStack.Push(cmd);
         Changed?.Invoke();
@@ -51,7 +47,7 @@ public class CommandStack
         if (_redoStack.Count == 0) return;
         var cmd = _redoStack.Pop();
         cmd.Execute();
-        _undoStack.Push(cmd);
+        _undoStack.AddLast(cmd);
         Changed?.Invoke();
     }
 

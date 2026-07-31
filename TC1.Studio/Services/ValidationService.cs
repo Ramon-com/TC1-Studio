@@ -52,16 +52,6 @@ public class ValidationService
 
         if (data.Length == 0) return;
 
-        // Alignment checks
-        int align = data.Length switch
-        {
-            4 => 4,
-            8 => 4,
-            12 => 4,
-            16 => 4,
-            _ => 1
-        };
-
         // Range warnings for floats
         if (data.Length == 4)
         {
