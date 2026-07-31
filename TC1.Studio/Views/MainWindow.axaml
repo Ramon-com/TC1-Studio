@@ -31,6 +31,10 @@
         <MenuItem Header="_Show Diff" Command="{Binding ShowDiffCommand}"
                   IsEnabled="{Binding HasDocument}" InputGesture="Ctrl+D" />
       </MenuItem>
+      <MenuItem Header="_Tools">
+        <MenuItem Header="_Import Hash Pack..." Command="{Binding ImportHashPackCommand}" />
+        <MenuItem Header="_Export Hash Pack..." Command="{Binding ExportHashPackCommand}" />
+      </MenuItem>
     </Menu>
 
     <!-- Main content: three-pane layout + optional diff panel -->

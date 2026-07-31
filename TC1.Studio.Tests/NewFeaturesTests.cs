@@ -136,4 +136,80 @@ public class NewFeaturesTests
             Directory.Delete(dir, true);
         }
     }
+
+    [Fact]
+    public void ImportPack_loads_entries_and_counts()
+    {
+        var dir = Directory.CreateTempSubdirectory("tc1test").FullName;
+        try
+        {
+            var pack = Path.Combine(dir, "pack.json");
+            File.WriteAllText(pack, """
+                {
+                  "0xDEADBEEF": "Dummy",
+                  "0x1122334455667788": "WideDummy"
+                }
+                """);
+
+            var service = new HashService(Path.Combine(dir, "hashes"));
+            service.ImportPack(pack).Should().Be(2);
+            service.Resolve(0xDEADBEEF).Should().Be("Dummy");
+            service.Resolve(0x1122334455667788UL).Should().Be("WideDummy");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
+    public void ImportPack_copies_to_community_dir_and_persists()
+    {
+        var dir = Directory.CreateTempSubdirectory("tc1test").FullName;
+        try
+        {
+            var pack = Path.Combine(dir, "my_pack.json");
+            File.WriteAllText(pack, "{ \"0xCAFEBABE\": \"Claw\" }");
+
+            var hashesDir = Path.Combine(dir, "hashes");
+            var service = new HashService(hashesDir);
+            service.ImportPack(pack);
+
+            File.Exists(Path.Combine(hashesDir, "Community", "my_pack.json")).Should().BeTrue();
+
+            var fresh = new HashService(hashesDir);
+            fresh.Resolve(0xCAFEBABE).Should().Be("Claw");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
+    public void ExportPack_round_trips_through_import()
+    {
+        var dir = Directory.CreateTempSubdirectory("tc1test").FullName;
+        try
+        {
+            var hashesDir = Path.Combine(dir, "hashes");
+            var service = new HashService(hashesDir);
+            service.SaveUserHash(0x12345678u, "Life");
+            service.SaveUserHash(0xAABBCCDDEEFF0011UL, "Universe");
+            service.SaveUserHash(0x0000111122223333UL, "Everything");
+
+            var pack = Path.Combine(dir, "out.json");
+            HashService.WritePack(pack, service.GetEntries());
+
+            var other = new HashService(Path.Combine(dir, "other"));
+            other.ImportPack(pack).Should().Be(3);
+            other.Resolve(0x12345678).Should().Be("Life");
+            other.Resolve(0xAABBCCDDEEFF0011UL).Should().Be("Universe");
+            other.Resolve(0x0000111122223333UL).Should().Be("Everything");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
 }

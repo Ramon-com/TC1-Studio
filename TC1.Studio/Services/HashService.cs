@@ -70,29 +70,80 @@ public class HashService
         LoadFromStream(stream, origin, overwrite);
     }
 
-    private void LoadFromStream(Stream stream, HashOrigin origin, bool overwrite)
+    private int LoadFromStream(Stream stream, HashOrigin origin, bool overwrite)
     {
+        var count = 0;
         using var doc = JsonDocument.Parse(stream);
         foreach (var entry in doc.RootElement.EnumerateObject())
         {
-            if (!entry.Name.StartsWith("0x")) continue;
+            if (!entry.Name.StartsWith("0x", System.StringComparison.OrdinalIgnoreCase)) continue;
 
             var name = entry.Value.GetString();
             if (string.IsNullOrEmpty(name)) continue;
 
-            if (entry.Name.Length == 18) // CRC64
+            var hex = entry.Name.Substring(2);
+            if (hex.Length == 16)
             {
-                var hash = System.Convert.ToUInt64(entry.Name.Substring(2), 16);
+                var hash = System.Convert.ToUInt64(hex, 16);
                 if (overwrite || !_crc64.ContainsKey(hash))
+                {
                     _crc64[hash] = new HashEntry { Name = name, Origin = origin };
+                    count++;
+                }
             }
-            else // CRC32
+            else if (hex.Length <= 10)
             {
-                var hash = System.Convert.ToUInt32(entry.Name.Substring(2), 16);
+                var hash = System.Convert.ToUInt32(hex, 16);
                 if (overwrite || !_crc32.ContainsKey(hash))
+                {
                     _crc32[hash] = new HashEntry { Name = name, Origin = origin };
+                    count++;
+                }
+            }
+            else
+            {
+                var hash = System.Convert.ToUInt64(hex, 16);
+                if (overwrite || !_crc64.ContainsKey(hash))
+                {
+                    _crc64[hash] = new HashEntry { Name = name, Origin = origin };
+                    count++;
+                }
             }
         }
+        return count;
+    }
+
+    public int ImportPack(string path)
+    {
+        if (string.IsNullOrEmpty(path) || !File.Exists(path)) return 0;
+        try
+        {
+            if (!string.IsNullOrEmpty(_communityDir))
+            {
+                Directory.CreateDirectory(_communityDir);
+                var dest = Path.Combine(_communityDir, Path.GetFileName(path));
+                File.Copy(path, dest, overwrite: true);
+            }
+        }
+        catch { }
+        using var stream = File.OpenRead(path);
+        return LoadFromStream(stream, HashOrigin.Community, overwrite: false);
+    }
+
+    public Dictionary<string, string> GetEntries()
+    {
+        var all = new Dictionary<string, string>();
+        foreach (var kv in _crc32)
+            all["0x" + kv.Key.ToString("X8")] = kv.Value.Name;
+        foreach (var kv in _crc64)
+            all["0x" + kv.Key.ToString("X16")] = kv.Value.Name;
+        return all;
+    }
+
+    public static void WritePack(string path, Dictionary<string, string> entries)
+    {
+        var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(path, json);
     }
 
     public bool SaveUserHash(uint hash, string name)

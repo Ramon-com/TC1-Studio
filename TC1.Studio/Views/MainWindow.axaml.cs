@@ -49,6 +49,39 @@ public partial class MainWindow : Window
 
                 return await dialog.ShowAsync(this);
             };
+
+            vm.RequestImportHashPack = async () =>
+            {
+                var dialog = new OpenFileDialog
+                {
+                    Title = "Import Hash Pack",
+                    AllowMultiple = false,
+                };
+                dialog.Filters.Add(new FileDialogFilter
+                {
+                    Name = "JSON hash packs",
+                    Extensions = { "json" }
+                });
+
+                var result = await dialog.ShowAsync(this);
+                return result?.Length > 0 ? result[0] : null;
+            };
+
+            vm.RequestExportHashPack = async () =>
+            {
+                var dialog = new SaveFileDialog
+                {
+                    Title = "Export Hash Pack",
+                    DefaultExtension = "json",
+                };
+                dialog.Filters.Add(new FileDialogFilter
+                {
+                    Name = "JSON hash packs",
+                    Extensions = { "json" }
+                });
+
+                return await dialog.ShowAsync(this);
+            };
         }
     }
 }

@@ -17,6 +17,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly BinaryObjectService _boService;
     private readonly ValidationService _validation;
     private readonly FileService _files;
+    private readonly HashService _hashes;
 
     [ObservableProperty]
     private string _statusText = "No archive loaded";
@@ -43,20 +44,22 @@ public partial class MainWindowViewModel : ObservableObject
 
     public Func<Task<string>> RequestOpenFile { get; set; }
     public Func<Task<string>> RequestSaveFile { get; set; }
+    public Func<Task<string>> RequestImportHashPack { get; set; }
+    public Func<Task<string>> RequestExportHashPack { get; set; }
 
     public MainWindowViewModel()
     {
-        var hashes = new HashService();
+        _hashes = new HashService();
         var files = new FileService();
         _archive = new ArchiveService();
         _boService = new BinaryObjectService();
         _validation = new ValidationService();
         _files = files;
 
-        ArchiveExplorer = new ArchiveExplorerViewModel(_archive, files, _boService, hashes);
-        ObjectTree = new ObjectTreeViewModel(_boService, hashes);
-        PropertyGrid = new PropertyGridViewModel(_boService, Undo, hashes);
-        DiffView = new DiffViewModel(_boService, hashes);
+        ArchiveExplorer = new ArchiveExplorerViewModel(_archive, files, _boService, _hashes);
+        ObjectTree = new ObjectTreeViewModel(_boService, _hashes);
+        PropertyGrid = new PropertyGridViewModel(_boService, Undo, _hashes);
+        DiffView = new DiffViewModel(_boService, _hashes);
 
         ArchiveExplorer.ObjectTreeOpened += _ =>
         {
@@ -212,6 +215,48 @@ public partial class MainWindowViewModel : ObservableObject
     {
         DiffView.Refresh();
         DiffView.IsVisible = !DiffView.IsVisible;
+    }
+
+    [RelayCommand]
+    public async Task ImportHashPack()
+    {
+        if (RequestImportHashPack == null) return;
+        var path = await RequestImportHashPack();
+        if (string.IsNullOrEmpty(path)) return;
+        try
+        {
+            var count = _hashes.ImportPack(path);
+            if (count == 0)
+            {
+                StatusText = "No new names in that pack";
+                return;
+            }
+            ObjectTree.LoadFromCurrent();
+            PropertyGrid.Fields.Clear();
+            StatusText = $"Imported {count} names from {Path.GetFileName(path)}";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Import error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task ExportHashPack()
+    {
+        if (RequestExportHashPack == null) return;
+        var path = await RequestExportHashPack();
+        if (string.IsNullOrEmpty(path)) return;
+        try
+        {
+            var entries = _hashes.GetEntries();
+            HashService.WritePack(path, entries);
+            StatusText = $"Exported {entries.Count} names to {Path.GetFileName(path)}";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Export error: {ex.Message}";
+        }
     }
 
     [RelayCommand]

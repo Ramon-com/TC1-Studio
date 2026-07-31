@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 (2026-07-31)
+
+hash packs. the tools menu now imports and exports json hash packs.
+
+- import pack: drops any json hash pack into the community folder and loads it live, so all the hex turns into names instantly and it sticks around for next launch.
+- export pack: dumps every known hash (builtin, community and your renames) to a json file you can share or back up.
+- import is tolerant of key widths, lowercase 0x prefixes, whatever. packs are plain {"0x12345678": "Name"} json.
+- same rules as before: your own renames always beat pack names, pack names only fill in the blanks.
+
 ## 0.2.0 (2026-07-31)
 
 feature pass. the archive no longer breaks your save if you only opened a couple entries, and raw byte fields are editable now.
