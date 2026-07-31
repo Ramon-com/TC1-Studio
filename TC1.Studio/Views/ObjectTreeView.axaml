@@ -14,6 +14,8 @@
               <ContextMenu>
                 <MenuItem Header="Assign Friendly Name..." IsEnabled="{Binding CanRename}"
                           Click="OnRenameNode" />
+                <Separator />
+                <MenuItem Header="Add Field..." Click="OnAddField" />
               </ContextMenu>
             </StackPanel.ContextMenu>
             <TextBlock Text="{Binding ResolvedName}" FontWeight="Bold" />

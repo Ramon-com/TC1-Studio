@@ -41,4 +41,17 @@ public partial class PropertyGridView : UserControl
             }
         }
     }
+
+    private void OnRemoveField(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi)
+        {
+            var field = mi.DataContext as FieldViewModel;
+            if (field == null && mi.Parent is ContextMenu cm)
+                field = cm.PlacementTarget?.DataContext as FieldViewModel;
+
+            if (field == null || DataContext is not PropertyGridViewModel vm) return;
+            vm.RemoveField(field);
+        }
+    }
 }

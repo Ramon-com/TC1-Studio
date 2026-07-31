@@ -29,10 +29,19 @@ public class ArchiveService
 
     public byte[] ExtractEntry(int index)
     {
-        var entry = CurrentReader.Entries[index];
         using var dat = File.OpenRead(DatPath);
         var reader = new DataReader(null, dat, CurrentReader.Entries);
-        return reader.ReadEntryData(entry);
+        return reader.ReadEntryData(CurrentReader.Entries[index]);
+    }
+
+    public byte[][] ExtractAll()
+    {
+        using var dat = File.OpenRead(DatPath);
+        var reader = new DataReader(null, dat, CurrentReader.Entries);
+        var result = new byte[CurrentReader.Entries.Count][];
+        for (int i = 0; i < CurrentReader.Entries.Count; i++)
+            result[i] = reader.ReadEntryData(CurrentReader.Entries[i]);
+        return result;
     }
 
     public void Repack(string outputFat, string outputDat)
@@ -40,6 +49,21 @@ public class ArchiveService
         var extractedDir = DataDir;
         if (!Directory.Exists(extractedDir))
             throw new DirectoryNotFoundException($"Extracted data not found: {extractedDir}");
+
+        // Read source data for entries that were never opened before touching the
+        // output files, so saving over the original archive works.
+        var fallback = new Dictionary<int, byte[]>();
+        if (File.Exists(DatPath))
+        {
+            using var sourceDat = File.OpenRead(DatPath);
+            var dataReader = new DataReader(null, sourceDat, CurrentReader.Entries);
+            for (int i = 0; i < CurrentReader.Entries.Count; i++)
+            {
+                var filePath = Path.Combine(extractedDir, $"{i:D6}_{CurrentReader.Entries[i].NameHash:X16}.bin");
+                if (!File.Exists(filePath))
+                    fallback[i] = dataReader.ReadEntryData(CurrentReader.Entries[i]);
+            }
+        }
 
         using var fatOut = File.Create(outputFat);
         using var datOut = File.Create(outputDat);
@@ -50,7 +74,14 @@ public class ArchiveService
         {
             var entry = CurrentReader.Entries[i];
             var filePath = Path.Combine(extractedDir, $"{i:D6}_{entry.NameHash:X16}.bin");
-            var data = File.ReadAllBytes(filePath);
+
+            byte[] data;
+            if (File.Exists(filePath))
+                data = File.ReadAllBytes(filePath);
+            else if (fallback.TryGetValue(i, out var fb))
+                data = fb;
+            else
+                throw new FileNotFoundException($"Extracted entry not found and no source data: {filePath}");
 
             var newEntry = new Entry
             {

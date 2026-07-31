@@ -32,6 +32,8 @@ public partial class ObjectNodeViewModel : ObservableObject
     [ObservableProperty]
     private bool _canRename;
 
+    public TC1.Core.BinaryObject.Node SourceNode { get; set; }
+
     public ObservableCollection<ObjectNodeViewModel> Children { get; } = new();
     public ObservableCollection<FieldViewModel> Fields { get; } = new();
 }
@@ -112,34 +114,51 @@ public partial class ObjectTreeViewModel : ObservableObject
             Confidence = nameKnown ? FieldConfidence.Known : FieldConfidence.Inferred,
             CanRename = !nameKnown,
             OriginTag = GetOriginTag(node.NameHash),
+            SourceNode = node,
         };
 
         foreach (var child in node.Children)
             vm.Children.Add(BuildNode(child));
 
         foreach (var kv in node.Fields)
-        {
-            var typeHint = BinaryObjectTypeHelper.DetectType(kv.Value);
-            var display = BinaryObjectTypeHelper.FormatValue(kv.Value, typeHint);
-            var fieldKnown = _hashes.TryResolve(kv.Key, out _);
-            vm.Fields.Add(new FieldViewModel
-            {
-                NameHash = kv.Key,
-                ResolvedName = _hashes.Resolve(kv.Key),
-                RawValue = kv.Value,
-                TypeHint = typeHint,
-                DisplayValue = display,
-                EditValue = display,
-                Confidence = fieldKnown ? FieldConfidence.Known : (typeHint != "bytes" ? FieldConfidence.Inferred : FieldConfidence.Unknown),
-                EditorType = GetEditorType(typeHint, kv.Value),
-                ParentNode = node,
-                ParentNodeHash = node.NameHash,
-                CanRename = !fieldKnown,
-                OriginTag = GetOriginTag(kv.Key),
-            });
-        }
+            vm.Fields.Add(CreateFieldViewModel(node, kv.Key, kv.Value, _hashes));
 
         return vm;
+    }
+
+    public static FieldViewModel CreateFieldViewModel(TC1.Core.BinaryObject.Node node, uint hash, byte[] value, HashService hashes)
+    {
+        var typeHint = BinaryObjectTypeHelper.DetectType(value);
+        var display = BinaryObjectTypeHelper.FormatValue(value, typeHint);
+        var known = hashes.TryResolve(hash, out _);
+        return new FieldViewModel
+        {
+            NameHash = hash,
+            ResolvedName = hashes.Resolve(hash),
+            RawValue = value,
+            TypeHint = typeHint,
+            DisplayValue = display,
+            EditValue = display,
+            Confidence = known ? FieldConfidence.Known : (typeHint != "bytes" ? FieldConfidence.Inferred : FieldConfidence.Unknown),
+            EditorType = GetEditorType(typeHint, value),
+            ParentNode = node,
+            ParentNodeHash = node.NameHash,
+            CanRename = !known,
+            OriginTag = GetOriginTag(hashes, hash),
+        };
+    }
+
+    public static string GetOriginTag(HashService hashes, uint hash)
+    {
+        if (hashes.TryGetEntry(hash, out var entry))
+            return entry.Origin switch
+            {
+                HashOrigin.BuiltIn => "Built-in",
+                HashOrigin.User => "User",
+                HashOrigin.Community => "Community",
+                _ => null,
+            };
+        return null;
     }
 
     private string GetOriginTag(uint hash)
@@ -173,22 +192,51 @@ public partial class ObjectTreeViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(newName)) return false;
         if (!IsValidIdentifier(newName)) return false;
 
-        if (hexHash.StartsWith("0x") || hexHash.StartsWith("0X"))
-        {
-            var hex = hexHash.Substring(2);
-            if (hex.Length > 0 && hex.Length <= 8 && uint.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out var u32))
-            {
-                // Check it's not already known as a different name
-                if (_hashes.IsKnown(u32) && !_hashes.IsUserDefined(u32))
-                    return false;
+        if (!hexHash.StartsWith("0x") && !hexHash.StartsWith("0X")) return false;
+        var hex = hexHash.Substring(2);
 
-                _hashes.SaveUserHash(u32, newName);
-                LoadFromCurrent();
-                HashRenamed?.Invoke();
-                return true;
-            }
+        bool saved;
+        if (hex.Length > 8 && hex.Length <= 16 &&
+            ulong.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out var u64))
+        {
+            saved = RenameHash(u64, newName);
         }
-        return false;
+        else if (hex.Length > 0 && hex.Length <= 8 &&
+            uint.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out var u32))
+        {
+            saved = RenameHash(u32, newName);
+        }
+        else
+        {
+            saved = false;
+        }
+
+        if (saved)
+        {
+            LoadFromCurrent();
+            HashRenamed?.Invoke();
+        }
+        return saved;
+    }
+
+    public bool RenameHash(ulong hash, string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName)) return false;
+        if (!IsValidIdentifier(newName)) return false;
+        if (_hashes.IsKnown(hash) && !_hashes.IsUserDefined(hash)) return false;
+
+        _hashes.SaveUserHash(hash, newName);
+        return true;
+    }
+
+    public bool RenameHash(uint hash, string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName)) return false;
+        if (!IsValidIdentifier(newName)) return false;
+        if (_hashes.IsKnown(hash) && !_hashes.IsUserDefined(hash)) return false;
+
+        _hashes.SaveUserHash(hash, newName);
+        return true;
     }
 
     public static bool IsValidIdentifier(string name)

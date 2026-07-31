@@ -98,7 +98,17 @@ public class HashService
     public bool SaveUserHash(uint hash, string name)
     {
         _crc32[hash] = new HashEntry { Name = name, Origin = HashOrigin.User };
+        return SaveUserEntry($"0x{hash:X8}", name);
+    }
 
+    public bool SaveUserHash(ulong hash, string name)
+    {
+        _crc64[hash] = new HashEntry { Name = name, Origin = HashOrigin.User };
+        return SaveUserEntry($"0x{hash:X16}", name);
+    }
+
+    private bool SaveUserEntry(string key, string name)
+    {
         var dir = Path.GetDirectoryName(_userPath);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             Directory.CreateDirectory(dir);
@@ -115,7 +125,6 @@ public class HashService
             catch { }
         }
 
-        var key = $"0x{hash:X8}";
         dict.Remove(key);
         dict[key] = name;
 
@@ -172,5 +181,10 @@ public class HashService
     public bool IsUserDefined(uint hash)
     {
         return _crc32.TryGetValue(hash, out var e) && e.Origin == HashOrigin.User;
+    }
+
+    public bool IsUserDefined(ulong hash)
+    {
+        return _crc64.TryGetValue(hash, out var e) && e.Origin == HashOrigin.User;
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TC1.Core;
@@ -13,6 +14,7 @@ public partial class PropertyGridViewModel : ObservableObject
     private readonly BinaryObjectService _boService;
     private readonly HashService _hashes;
     private readonly CommandStack _undo;
+    private ObjectNodeViewModel _currentNode;
 
     public event Action FieldEdited;
     public event Action HashRenamed;
@@ -35,6 +37,7 @@ public partial class PropertyGridViewModel : ObservableObject
     public void ShowNode(ObjectNodeViewModel node)
     {
         ErrorMessage = null;
+        _currentNode = node;
         if (node == null)
         {
             NodeInfo = null;
@@ -123,8 +126,62 @@ public partial class PropertyGridViewModel : ObservableObject
                 if (TryParseVec4(text, out var v4)) return v4;
                 throw new ArgumentException($"'{text}' is not a valid vec4 (x, y, z, w)");
             default:
-                throw new ArgumentException($"Unsupported type hint: {type}");
+                return ParseHex(text);
         }
+    }
+
+    public static byte[] ParseHex(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            throw new ArgumentException("Value cannot be empty");
+
+        var cleaned = new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray());
+        if (cleaned.Length % 2 != 0)
+            throw new ArgumentException("Hex string must have an even number of digits");
+        if (cleaned.Length == 0)
+            throw new ArgumentException("Value cannot be empty");
+
+        var result = new byte[cleaned.Length / 2];
+        for (int i = 0; i < result.Length; i++)
+        {
+            var pair = cleaned.Substring(i * 2, 2);
+            if (!byte.TryParse(pair, System.Globalization.NumberStyles.HexNumber, null, out var b))
+                throw new ArgumentException($"'{pair}' is not a valid hex byte");
+            result[i] = b;
+        }
+        return result;
+    }
+
+    public void AddFieldToNode(ObjectNodeViewModel node, uint hash, byte[] value)
+    {
+        if (node?.SourceNode == null) return;
+
+        var cmd = new AddFieldCommand(node.SourceNode, hash, value, $"0x{hash:X8}");
+        _undo.Execute(cmd);
+
+        var fieldVm = ObjectTreeViewModel.CreateFieldViewModel(node.SourceNode, hash, value, _hashes);
+        node.Fields.Add(fieldVm);
+        if (_currentNode == node)
+            Fields.Add(fieldVm);
+
+        _boService.MarkModified();
+        FieldEdited?.Invoke();
+    }
+
+    public void RemoveField(FieldViewModel field)
+    {
+        if (field?.ParentNode == null) return;
+
+        var oldValue = field.RawValue != null ? field.RawValue.ToArray() : null;
+        var cmd = new RemoveFieldCommand(field.ParentNode, field.NameHash, oldValue, field.ResolvedName);
+        _undo.Execute(cmd);
+
+        if (_currentNode != null)
+            _currentNode.Fields.Remove(field);
+        Fields.Remove(field);
+
+        _boService.MarkModified();
+        FieldEdited?.Invoke();
     }
 
     private static bool TryParseVec3(string text, out byte[] result)

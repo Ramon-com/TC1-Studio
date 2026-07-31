@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using TC1.Core.BigFile;
 using TC1.Core.BinaryObject;
+using TC1.Core.Compression;
 using TC1.Core.Hashing;
 
 var cmd = args.Length > 0 ? args[0].ToLowerInvariant() : "help";
@@ -102,13 +103,25 @@ static void DoRepack(string[] args)
         {
             NameHash = nameHash,
             Offset = datOut.Position,
-            CompressedSize = (uint)data.Length,
-            UncompressedSize = 0,
-            CompressionScheme = CompressionScheme.None,
         };
 
+        if (LZO.IsAvailable)
+        {
+            var compressed = LZO.Compress(data);
+            entry.CompressedSize = (uint)compressed.Length;
+            entry.UncompressedSize = (uint)data.Length;
+            entry.CompressionScheme = CompressionScheme.LZO1x;
+            datOut.Write(compressed);
+        }
+        else
+        {
+            entry.CompressedSize = (uint)data.Length;
+            entry.UncompressedSize = 0;
+            entry.CompressionScheme = CompressionScheme.None;
+            datOut.Write(data);
+        }
+
         writer.Entries.Add(entry);
-        datOut.Write(data);
     }
 
     writer.SerializeFat(fatOut);

@@ -98,6 +98,40 @@ public partial class ArchiveExplorerViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    public void ExtractAll()
+    {
+        if (_archive.CurrentReader == null || _archive.CurrentReader.Entries.Count == 0)
+        {
+            StatusMessage?.Invoke("No archive loaded");
+            return;
+        }
+
+        try
+        {
+            var all = _archive.ExtractAll();
+            for (int i = 0; i < all.Length; i++)
+                _files.WriteExtractedFile(_archive.DataDir, i, _archive.CurrentReader.Entries[i].NameHash, all[i]);
+            StatusMessage?.Invoke($"Extracted {all.Length} entries to {_archive.DataDir}");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage?.Invoke($"Error extracting: {ex.Message}");
+        }
+    }
+
+    public void RenameEntry(string newName)
+    {
+        var entry = SelectedEntry;
+        if (entry == null) return;
+        if (!ObjectTreeViewModel.IsValidIdentifier(newName)) return;
+        if (_hashes.IsKnown(entry.NameHash) && !_hashes.IsUserDefined(entry.NameHash)) return;
+
+        _hashes.SaveUserHash(entry.NameHash, newName);
+        entry.Name = newName;
+        StatusMessage?.Invoke($"Renamed entry to {newName}");
+    }
+
     public event Action<ulong> ObjectTreeOpened;
     public event Action<string> StatusMessage;
 }

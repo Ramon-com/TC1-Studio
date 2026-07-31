@@ -1,3 +1,4 @@
+using System;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
@@ -6,6 +7,10 @@ namespace TC1.Studio.Views;
 public partial class InputDialog : Window
 {
     public string Result { get; private set; }
+
+    public string PromptText { get; set; }
+
+    public bool AllowFreeText { get; set; }
 
     public InputDialog()
     {
@@ -18,28 +23,38 @@ public partial class InputDialog : Window
         };
     }
 
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        if (!string.IsNullOrEmpty(PromptText))
+            PromptLabel.Text = PromptText;
+    }
+
     private void OnOk(object sender, RoutedEventArgs e)
     {
         var text = NameBox.Text?.Trim();
         if (string.IsNullOrEmpty(text))
         {
-            ErrorText.Text = "Name cannot be empty.";
+            ErrorText.Text = "Value cannot be empty.";
             ErrorText.IsVisible = true;
             return;
         }
-        if (!char.IsLetter(text[0]) && text[0] != '_')
+        if (!AllowFreeText)
         {
-            ErrorText.Text = "Name must start with a letter or underscore.";
-            ErrorText.IsVisible = true;
-            return;
-        }
-        for (int i = 1; i < text.Length; i++)
-        {
-            if (!char.IsLetterOrDigit(text[i]) && text[i] != '_')
+            if (!char.IsLetter(text[0]) && text[0] != '_')
             {
-                ErrorText.Text = $"Invalid character '{text[i]}'. Use letters, digits, or underscores.";
+                ErrorText.Text = "Name must start with a letter or underscore.";
                 ErrorText.IsVisible = true;
                 return;
+            }
+            for (int i = 1; i < text.Length; i++)
+            {
+                if (!char.IsLetterOrDigit(text[i]) && text[i] != '_')
+                {
+                    ErrorText.Text = $"Invalid character '{text[i]}'. Use letters, digits, or underscores.";
+                    ErrorText.IsVisible = true;
+                    return;
+                }
             }
         }
         Result = text;

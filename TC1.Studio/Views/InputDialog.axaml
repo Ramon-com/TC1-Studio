@@ -6,7 +6,7 @@
         WindowStartupLocation="CenterOwner"
         CanResize="False">
   <StackPanel Spacing="12" Margin="16">
-    <TextBlock Text="Enter a friendly name for this field:" />
+    <TextBlock x:Name="PromptLabel" Text="Enter a friendly name for this field:" />
     <TextBox x:Name="NameBox" Watermark="e.g. RainIntensity" />
     <TextBlock x:Name="ErrorText" Foreground="#FF5252" FontSize="12" IsVisible="False" />
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">

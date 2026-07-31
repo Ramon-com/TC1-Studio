@@ -3,15 +3,27 @@
              xmlns:vm="clr-namespace:TC1.Studio.ViewModels"
              x:Class="TC1.Studio.Views.ArchiveExplorerView">
   <DockPanel>
-    <TextBlock DockPanel.Dock="Top" Text="{Binding ArchiveName}" FontWeight="Bold" Margin="4" />
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto">
+      <TextBlock Grid.Column="0" Text="{Binding ArchiveName}" FontWeight="Bold" Margin="4"
+                 VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      <Button Grid.Column="1" Content="Extract All" Command="{Binding ExtractAllCommand}"
+              FontSize="11" Padding="4,1" Margin="4" VerticalAlignment="Center" />
+    </Grid>
     <ListBox ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry, Mode=TwoWay}" SelectionChanged="OnSelectionChanged">
       <ListBox.ItemTemplate>
         <DataTemplate DataType="vm:ArchiveEntryViewModel">
           <StackPanel Margin="4">
+            <StackPanel.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Assign Friendly Name..." Click="OnRenameEntry" />
+              </ContextMenu>
+            </StackPanel.ContextMenu>
             <TextBlock Text="{Binding Name}" FontWeight="Bold" />
             <StackPanel Margin="8,0,0,0">
               <TextBlock Text="{Binding NameHash, StringFormat='0x{0:X16}'}" FontSize="11" Opacity="0.6" />
-              <TextBlock Text="{Binding CompressionScheme, StringFormat='Scheme: {0}'}" FontSize="11" Opacity="0.6" />
+              <TextBlock FontSize="11" Opacity="0.6">
+                <Run Text="{Binding CompressedSize}" /><Run Text=" / " /><Run Text="{Binding UncompressedSize}" /><Run Text=" bytes  " /><Run Text="{Binding CompressionScheme, StringFormat='[{0}]'}" />
+              </TextBlock>
             </StackPanel>
           </StackPanel>
         </DataTemplate>

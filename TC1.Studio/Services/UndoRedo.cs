@@ -89,3 +89,57 @@ public class SetFieldCommand : IUndoableCommand
         _node.Fields[_fieldHash] = _oldValue;
     }
 }
+
+public class AddFieldCommand : IUndoableCommand
+{
+    private readonly Node _node;
+    private readonly uint _fieldHash;
+    private readonly byte[] _value;
+
+    public string Name { get; }
+
+    public AddFieldCommand(Node node, uint fieldHash, byte[] value, string fieldName)
+    {
+        _node = node;
+        _fieldHash = fieldHash;
+        _value = value;
+        Name = $"Add {fieldName}";
+    }
+
+    public void Execute()
+    {
+        _node.Fields[_fieldHash] = _value;
+    }
+
+    public void Undo()
+    {
+        _node.Fields.Remove(_fieldHash);
+    }
+}
+
+public class RemoveFieldCommand : IUndoableCommand
+{
+    private readonly Node _node;
+    private readonly uint _fieldHash;
+    private readonly byte[] _oldValue;
+
+    public string Name { get; }
+
+    public RemoveFieldCommand(Node node, uint fieldHash, byte[] oldValue, string fieldName)
+    {
+        _node = node;
+        _fieldHash = fieldHash;
+        _oldValue = oldValue;
+        Name = $"Remove {fieldName}";
+    }
+
+    public void Execute()
+    {
+        _node.Fields.Remove(_fieldHash);
+    }
+
+    public void Undo()
+    {
+        _node.Fields[_fieldHash] = _oldValue;
+    }
+}

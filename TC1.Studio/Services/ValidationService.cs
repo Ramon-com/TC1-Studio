@@ -67,6 +67,8 @@ public class ValidationService
             var val = BitConverter.ToDouble(data);
             if (double.IsNaN(val))
                 results.Add(new ValidationResult { Severity = ValidationSeverity.Warning, Message = $"NaN float64 at {fieldPath}", FieldHash = hash });
+            else if (double.IsInfinity(val))
+                results.Add(new ValidationResult { Severity = ValidationSeverity.Warning, Message = $"Infinity float64 at {fieldPath}", FieldHash = hash });
         }
     }
 }
