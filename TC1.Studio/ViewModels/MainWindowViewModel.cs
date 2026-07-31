@@ -16,6 +16,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly ArchiveService _archive;
     private readonly BinaryObjectService _boService;
     private readonly ValidationService _validation;
+    private readonly FileService _files;
 
     [ObservableProperty]
     private string _statusText = "No archive loaded";
@@ -50,6 +51,7 @@ public partial class MainWindowViewModel : ObservableObject
         _archive = new ArchiveService();
         _boService = new BinaryObjectService();
         _validation = new ValidationService();
+        _files = files;
 
         ArchiveExplorer = new ArchiveExplorerViewModel(_archive, files, _boService, hashes);
         ObjectTree = new ObjectTreeViewModel(_boService, hashes);
@@ -132,15 +134,10 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (RequestOpenFile == null) return;
 
-        if (IsModified)
-        {
-            await Task.CompletedTask; // placeholder for confirm dialog
-        }
-
         var path = await RequestOpenFile();
         if (string.IsNullOrEmpty(path)) return;
 
-        var (fat, dat) = new FileService().FindArchivePair(path);
+        var (fat, dat) = _files.FindArchivePair(path);
         if (fat == null)
         {
             StatusText = "Invalid archive file";
@@ -232,9 +229,8 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task CloseArchive()
+    public void CloseArchive()
     {
-        if (IsModified) await Task.CompletedTask; // placeholder for confirm dialog
         ArchiveExplorer.Entries.Clear();
         ObjectTree.RootNodes.Clear();
         PropertyGrid.Fields.Clear();

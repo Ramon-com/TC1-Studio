@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace TC1.Core.Compression;
 
@@ -23,7 +25,7 @@ public static class LZO
         byte[] wrkmem);
 
     private static readonly bool _initialized;
-    private static readonly byte[] _workMemory = new byte[16384L * 4];
+    private static readonly ThreadLocal<byte[]> _workMemory = new(() => new byte[16384L * 4]);
 
     static LZO()
     {
@@ -31,8 +33,9 @@ public static class LZO
         {
             _initialized = lzo_init() == 0;
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"LZO init failed: {ex.Message}");
             _initialized = false;
         }
     }
@@ -46,7 +49,7 @@ public static class LZO
 
         var result = new byte[decompressedSize];
         int dstLen = decompressedSize;
-        int ret = lzo1x_decompress_safe(compressed, compressedSize, result, ref dstLen, _workMemory);
+        int ret = lzo1x_decompress_safe(compressed, compressedSize, result, ref dstLen, _workMemory.Value);
         if (ret != 0)
             throw new InvalidOperationException($"LZO decompression failed with code {ret}");
         return result;
@@ -59,7 +62,7 @@ public static class LZO
 
         var compressed = new byte[data.Length + data.Length / 16 + 64 + 3];
         int dstLen = compressed.Length;
-        int ret = lzo1x_1_compress(data, data.Length, compressed, ref dstLen, _workMemory);
+        int ret = lzo1x_1_compress(data, data.Length, compressed, ref dstLen, _workMemory.Value);
         if (ret != 0)
             throw new InvalidOperationException($"LZO compression failed with code {ret}");
 

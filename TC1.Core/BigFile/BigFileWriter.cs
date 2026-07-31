@@ -51,8 +51,11 @@ public class BigFileWriter
             }
             else
             {
-                throw new NotSupportedException(
-                    $"Compression scheme {entry.CompressionScheme} not supported for repacking");
+                // Fall back to uncompressed for unsupported schemes
+                newEntry.CompressedSize = (uint)data.Length;
+                newEntry.UncompressedSize = 0;
+                newEntry.CompressionScheme = CompressionScheme.None;
+                datOutput.Write(data);
             }
 
             newEntries.Add(newEntry);
@@ -90,19 +93,19 @@ public class BigFileWriter
 
     private static void WriteEntryV5(Stream output, Entry entry)
     {
-        uint a = 0;
-        a |= ((entry.UncompressedSize << 2) & 0xFFFFFFFCu);
-        a |= (uint)((byte)entry.CompressionScheme & 0x03u);
+        uint packedHeader = 0;
+        packedHeader |= ((entry.UncompressedSize << 2) & 0xFFFFFFFCu);
+        packedHeader |= (uint)((byte)entry.CompressionScheme & 0x03u);
 
-        uint c = entry.CompressedSize & 0x3FFFFFFFu;
-        c |= (uint)(entry.Offset & 3) << 30;
+        uint packedSizeOffset = entry.CompressedSize & 0x3FFFFFFFu;
+        packedSizeOffset |= (uint)(entry.Offset & 3) << 30;
 
-        uint d = (uint)(entry.Offset >> 2);
+        uint offsetHigh = (uint)(entry.Offset >> 2);
 
-        output.WriteValueU32(a);
+        output.WriteValueU32(packedHeader);
         output.WriteValueU32(0); // author / zeros
         output.WriteValueU64(entry.NameHash);
-        output.WriteValueU32(c);
-        output.WriteValueU32(d);
+        output.WriteValueU32(packedSizeOffset);
+        output.WriteValueU32(offsetHigh);
     }
 }

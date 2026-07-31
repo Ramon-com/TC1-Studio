@@ -5,6 +5,8 @@
   <DockPanel>
     <TextBlock DockPanel.Dock="Top" Text="{Binding NodeInfo}" FontWeight="Bold" Margin="4" 
                TextWrapping="Wrap" />
+    <TextBlock DockPanel.Dock="Top" Text="{Binding ErrorMessage}" Foreground="#E74C3C" Margin="4"
+               TextWrapping="Wrap" />
     <ScrollViewer>
       <ItemsControl ItemsSource="{Binding Fields}">
         <ItemsControl.ItemTemplate>

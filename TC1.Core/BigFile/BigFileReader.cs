@@ -68,19 +68,19 @@ public class BigFileReader
 
     private static Entry ReadEntryV5(Stream input)
     {
-        var a = input.ReadValueU32();
+        var packedHeader = input.ReadValueU32();
         input.ReadValueU32(); // zeros / author
         var hash = input.ReadValueU64();
-        var c = input.ReadValueU32();
-        var d = input.ReadValueU32();
+        var packedSizeOffset = input.ReadValueU32();
+        var offsetHigh = input.ReadValueU32();
 
         var entry = new Entry
         {
-            UncompressedSize = (a & 0xFFFFFFFCu) >> 2,
-            CompressionScheme = (CompressionScheme)(a & 0x03u),
+            UncompressedSize = (packedHeader & 0xFFFFFFFCu) >> 2,
+            CompressionScheme = (CompressionScheme)(packedHeader & 0x03u),
             NameHash = hash,
-            CompressedSize = c & 0x3FFFFFFFu,
-            Offset = ((long)d << 2) | ((c >> 30) & 3),
+            CompressedSize = packedSizeOffset & 0x3FFFFFFFu,
+            Offset = ((long)offsetHigh << 2) | ((packedSizeOffset >> 30) & 3),
         };
         return entry;
     }

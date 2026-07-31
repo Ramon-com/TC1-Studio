@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.IO;
 
 namespace TC1.Core.BinaryObject;
@@ -73,7 +72,10 @@ public class BinaryObjectFile
             byte[] value;
             if (isOffset)
             {
-                input.Seek(position - size, SeekOrigin.Begin);
+                long target = position - (long)size;
+                if (target < 0)
+                    throw new System.FormatException($"Invalid field reference: offset {size} is larger than current position {position}");
+                input.Seek(target, SeekOrigin.Begin);
                 size = input.ReadCount(out isOffset);
                 if (isOffset)
                     throw new System.FormatException("Nested offset in field size");

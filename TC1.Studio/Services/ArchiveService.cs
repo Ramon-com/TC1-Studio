@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using TC1.Core.BigFile;
+using TC1.Core.Compression;
 
 namespace TC1.Studio.Services;
 
@@ -55,13 +56,25 @@ public class ArchiveService
             {
                 NameHash = entry.NameHash,
                 Offset = datOut.Position,
-                CompressedSize = (uint)data.Length,
-                UncompressedSize = 0,
-                CompressionScheme = CompressionScheme.None,
             };
 
+            if (entry.CompressionScheme == CompressionScheme.LZO1x && LZO.IsAvailable)
+            {
+                var compressed = LZO.Compress(data);
+                newEntry.CompressedSize = (uint)compressed.Length;
+                newEntry.UncompressedSize = (uint)data.Length;
+                newEntry.CompressionScheme = CompressionScheme.LZO1x;
+                datOut.Write(compressed);
+            }
+            else
+            {
+                newEntry.CompressedSize = (uint)data.Length;
+                newEntry.UncompressedSize = 0;
+                newEntry.CompressionScheme = CompressionScheme.None;
+                datOut.Write(data);
+            }
+
             writer.Entries.Add(newEntry);
-            datOut.Write(data);
         }
 
         writer.SerializeFat(fatOut);

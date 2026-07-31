@@ -6,6 +6,10 @@ namespace TC1.Core;
 
 public static class StreamHelpers
 {
+    private const byte CountMarkerExtended = 0xFF;
+    private const byte OffsetMarker = 0xFE;
+    private const int MaxInlineCount = 0xFD;
+
     public static ushort ReadValueU16(this Stream stream)
     {
         Span<byte> buf = stackalloc byte[2];
@@ -79,18 +83,18 @@ public static class StreamHelpers
 
         isOffset = false;
 
-        if (b < 0xFE)
+        if (b <= MaxInlineCount)
             return (uint)b;
 
-        isOffset = b != 0xFF;
+        isOffset = b != CountMarkerExtended;
         return stream.ReadValueU32();
     }
 
     public static void WriteCount(this Stream stream, uint value, bool isOffset)
     {
-        if (isOffset || value >= 0xFE)
+        if (isOffset || value > MaxInlineCount)
         {
-            stream.WriteByte((byte)(isOffset ? 0xFE : 0xFF));
+            stream.WriteByte((byte)(isOffset ? OffsetMarker : CountMarkerExtended));
             stream.WriteValueU32(value);
         }
         else
@@ -104,10 +108,10 @@ public static class StreamHelpers
         int b = stream.ReadByte();
         if (b < 0) throw new EndOfStreamException();
 
-        if (b < 0xFE)
+        if (b <= MaxInlineCount)
             return (uint)b;
 
-        if (b == 0xFE)
+        if (b == OffsetMarker)
             throw new FormatException("Unexpected packed marker 0xFE");
 
         return stream.ReadValueU32();

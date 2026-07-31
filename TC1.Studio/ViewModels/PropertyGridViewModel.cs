@@ -20,6 +20,9 @@ public partial class PropertyGridViewModel : ObservableObject
     [ObservableProperty]
     private string _nodeInfo;
 
+    [ObservableProperty]
+    private string _errorMessage;
+
     public ObservableCollection<FieldViewModel> Fields { get; } = new();
 
     public PropertyGridViewModel(BinaryObjectService boService, CommandStack undo, HashService hashes)
@@ -31,6 +34,7 @@ public partial class PropertyGridViewModel : ObservableObject
 
     public void ShowNode(ObjectNodeViewModel node)
     {
+        ErrorMessage = null;
         if (node == null)
         {
             NodeInfo = null;
@@ -49,11 +53,20 @@ public partial class PropertyGridViewModel : ObservableObject
     {
         if (field == null) return;
 
-        var newValue = ParseValue(field.EditValue, field.TypeHint);
-        if (newValue == null) return;
+        byte[] newValue;
+        try
+        {
+            newValue = ParseValue(field.EditValue, field.TypeHint);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            return;
+        }
 
         if (newValue.AsSpan().SequenceEqual(field.RawValue)) return;
 
+        ErrorMessage = null;
         var oldValue = field.RawValue.ToArray();
 
         var cmd = new SetFieldCommand(
@@ -86,22 +99,31 @@ public partial class PropertyGridViewModel : ObservableObject
 
     private static byte[] ParseValue(string text, string type)
     {
-        try
+        if (string.IsNullOrEmpty(text))
+            throw new ArgumentException("Value cannot be empty");
+
+        switch (type)
         {
-            return type switch
-            {
-                "float" when float.TryParse(text, out var f) => BitConverter.GetBytes(f),
-                "float64" when double.TryParse(text, out var d) => BitConverter.GetBytes(d),
-                "byte" when byte.TryParse(text, out var b) => new[] { b },
-                "int16" when short.TryParse(text, out var s) => BitConverter.GetBytes(s),
-                "vec3" when TryParseVec3(text, out var v) => v,
-                "vec4" when TryParseVec4(text, out var v) => v,
-                _ => null,
-            };
-        }
-        catch
-        {
-            return null;
+            case "float":
+                if (float.TryParse(text, out var f)) return BitConverter.GetBytes(f);
+                throw new ArgumentException($"'{text}' is not a valid float");
+            case "float64":
+                if (double.TryParse(text, out var d)) return BitConverter.GetBytes(d);
+                throw new ArgumentException($"'{text}' is not a valid float64");
+            case "byte":
+                if (byte.TryParse(text, out var b)) return new[] { b };
+                throw new ArgumentException($"'{text}' is not a valid byte");
+            case "int16":
+                if (short.TryParse(text, out var s)) return BitConverter.GetBytes(s);
+                throw new ArgumentException($"'{text}' is not a valid int16");
+            case "vec3":
+                if (TryParseVec3(text, out var v3)) return v3;
+                throw new ArgumentException($"'{text}' is not a valid vec3 (x, y, z)");
+            case "vec4":
+                if (TryParseVec4(text, out var v4)) return v4;
+                throw new ArgumentException($"'{text}' is not a valid vec4 (x, y, z, w)");
+            default:
+                throw new ArgumentException($"Unsupported type hint: {type}");
         }
     }
 
